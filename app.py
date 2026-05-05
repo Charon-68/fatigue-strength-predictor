@@ -104,7 +104,7 @@ def pareto(df, c1='cost_score', c2='pof_pct'):
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/en/thumb/b/b8/IIT_Bombay_Logo.svg/200px-IIT_Bombay_Logo.svg.png",
                  width=80)
 st.sidebar.title("ME228 — Fatigue Predictor")
-st.sidebar.markdown("**NIMS Steel Fatigue Dataset**  \nAgrawal et al. (2014)")
+st.sidebar.markdown("**NIMS Steel Fatigue Dataset** \nAgrawal et al. (2014)")
 st.sidebar.markdown("---")
 tab_choice = st.sidebar.radio(
     "Navigate",
@@ -112,7 +112,7 @@ tab_choice = st.sidebar.radio(
 )
 st.sidebar.markdown("---")
 st.sidebar.caption(
-    f"NC XGBoost CV RMSE: **{meta['nc']['cv_rmse']:.1f} MPa**  \n"
+    f"NC XGBoost CV RMSE: **{meta['nc']['cv_rmse']:.1f} MPa** \n"
     f"C RF CV RMSE: **{meta['c']['cv_rmse']:.1f} MPa**"
 )
 
@@ -282,7 +282,28 @@ else:
     inv_n       = col_f.select_slider("Sampling size",
                                       options=[10000, 25000, 50000, 100000], value=25000)
 
+    # 1. Initialize the state variables if they don't exist
+    if 'inv_results_ready' not in st.session_state:
+        st.session_state.inv_results_ready = False
+        st.session_state.last_inv_inputs = None
+
+    # Capture the current inputs to detect if the user changed the sliders
+    current_inputs = {
+        'regime': inv_regime, 'stress': inv_stress, 'fos': inv_fos, 
+        'maxpof': inv_maxpof, 'topk': inv_topk, 'n': inv_n
+    }
+
+    # 2. When the button is clicked, trigger the state and save the inputs
     if st.button("🚀 Find Optimal Alloys", type="primary"):
+        st.session_state.inv_results_ready = True
+        st.session_state.last_inv_inputs = current_inputs
+
+    # 3. If inputs changed AFTER running, reset the state so old results don't linger
+    if st.session_state.inv_results_ready and current_inputs != st.session_state.last_inv_inputs:
+        st.session_state.inv_results_ready = False
+
+    # 4. Run the block if the state is True
+    if st.session_state.inv_results_ready:
         regime_key = 'non_carb' if inv_regime == "Non-Carburized" else 'carb'
         model  = nc_model  if regime_key == 'non_carb' else c_model
         feats  = nc_feats  if regime_key == 'non_carb' else c_feats
